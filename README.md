@@ -1,6 +1,6 @@
 # 云服务器售卖系统
 
-一个基于 Node.js 和 Express 的云服务器售卖系统后端服务，提供服务器配置、价格计算、订单管理等功能。
+一个基于 Node.js 和 Express 的云服务器售卖系统后端服务，提供服务器配置、价格计算、订单管理、MCSM面板集成等功能。
 
 ## 功能特性
 
@@ -15,6 +15,7 @@
 - 微信支付和支付宝集成
 - 管理员后台管理功能
 - 管理员登录图像验证码验证
+- MCSM面板集成（用于创建和管理实际的云服务器实例）
 
 ## 管理员功能
 
@@ -38,7 +39,7 @@
 
 ### 管理员面板
 
-登录成功后将跳转到 `/admin/dashboard.html`，在此可以管理用户和订单。
+登录成功后将跳转到 `/admin/dashboard.html`，在此可以管理用户、订单和服务器实例。
 
 ## 技术栈
 
@@ -52,12 +53,13 @@
   - mysql2: MySQL 数据库驱动
   - wechatpay-node-v3: 微信支付 SDK
   - alipay-sdk: 支付宝 SDK
+  - axios: HTTP客户端（用于MCSM API调用）
 
 ## 安装和运行
 
 1. 克隆项目:
    ```
-   git clone <项目地址>
+   git clone https://github.com/yang1145/idc-system.git
    ```
 
 2. 安装依赖:
@@ -66,12 +68,11 @@
    ```
 
 3. 配置环境变量:
-   复制 [.env.example](file:///c%3A/Users/15015/Desktop/idc/.env.example) 文件并重命名为 .env，然后根据需要修改配置
+   复制 [.env.example]文件并重命名为 .env，然后根据需要修改配置
 
 4. 初始化数据库:
    ```
    node init-db.js
-   node init-admin.js
    ```
 
 5. 启动服务:
@@ -134,6 +135,17 @@ docker build -t cloud-server .
 docker run -d -p 3000:3000 --name cloud-server-app cloud-server
 ```
 
+## MCSM集成
+
+本系统集成了MCSM（Minecraft Server Manager）面板，可以自动创建和管理服务器实例。当用户支付订单后，系统会自动在MCSM面板中创建对应的服务器实例。
+
+### MCSM功能包括：
+
+1. 自动创建服务器实例
+2. 管理服务器状态（启动、停止、重启）
+3. 获取服务器详细信息
+4. 删除服务器实例
+
 ## 数据库设计
 
 ### 用户表 (users)
@@ -166,19 +178,19 @@ CREATE TABLE sms_codes (
 
 ### 用户认证
 
-- `POST /api/register` - 用户注册（需要短信验证码验证，支持手机号注册）
-- `POST /api/login` - 用户名/手机号 + 密码登录
-- `POST /api/login-sms` - 手机号 + 短信验证码登录
-- `POST /api/send-sms` - 发送短信验证码（用于注册或登录）
+- `POST /api/auth/send-sms` - 发送短信验证码（用于注册或登录）
+- `POST /api/auth/register` - 用户注册（需要短信验证码验证，支持手机号注册）
+- `POST /api/auth/login` - 用户名/手机号 + 密码登录
+- `POST /api/auth/login-sms` - 手机号 + 短信验证码登录
+- `GET /api/auth/captcha` - 生成图像验证码
+- `POST /api/auth/verify-captcha` - 验证图像验证码（用于测试）
+- `POST /api/auth/admin/login` - 管理员登录
 
 ### 获取服务器配置
 
 - `GET /api/servers` - 获取所有服务器配置列表
 - `GET /api/servers/:id` - 获取特定ID的服务器配置详情
-
-### 价格计算
-
-- `POST /api/calculate` - 实时计算自定义服务器配置价格
+- `POST /api/servers/calculate` - 实时计算自定义服务器配置价格
 
 请求体示例：
 ```json
@@ -207,7 +219,11 @@ API 支持以下可选参数来进一步定制服务器配置：
 
 ### 订单管理
 
-- `POST /api/order` - 创建新订单并生成支付请求
+- `POST /api/orders` - 创建新订单并生成支付请求（需要用户认证）
+- `GET /api/orders/:orderId` - 获取订单详情（需要用户认证）
+- `GET /api/orders` - 获取用户订单列表（需要用户认证）
+- `GET /api/orders/admin/orders` - 获取所有订单（管理员功能，需要管理员认证）
+- `PUT /api/orders/admin/orders/:orderId/status` - 更新订单状态（管理员功能，需要管理员认证）
 
 请求体示例：
 ```json
@@ -227,6 +243,44 @@ API 支持以下可选参数来进一步定制服务器配置：
 }
 ```
 
+### 支付管理
+
+- `POST /api/payment/create` - 发起支付
+- `GET /api/payment/status/:paymentId/:paymentMethod` - 查询支付状态
+- `POST /api/payment/wechat/notify` - 微信支付通知回调
+- `POST /api/payment/alipay/notify` - 支付宝通知回调
+
+### 管理员功能
+
+- `PUT /api/admin/password` - 更新管理员密码（需要管理员认证）
+- `GET /api/admin/users` - 获取所有用户（需要管理员认证）
+- `DELETE /api/admin/users/:id` - 删除用户（需要管理员认证）
+- `GET /api/admin/orders` - 获取所有订单（需要管理员认证）
+
+### MCSM 面板集成
+
+#### 管理员操作
+
+- `POST /api/mcsm/instances/:instanceId/start` - 启动MCSM实例（需要管理员认证）
+- `POST /api/mcsm/instances/:instanceId/stop` - 停止MCSM实例（需要管理员认证）
+- `POST /api/mcsm/instances/:instanceId/restart` - 重启MCSM实例（需要管理员认证）
+- `POST /api/mcsm/instances/:instanceId/command` - 发送命令到MCSM实例（需要管理员认证）
+- `GET /api/mcsm/instances/:instanceId/log` - 获取MCSM实例控制台日志（需要管理员认证）
+- `PUT /api/mcsm/instances/:instanceId/port` - 更改MCSM实例端口（需要管理员认证）
+- `GET /api/mcsm/users` - 获取所有MCSM用户（需要管理员认证）
+- `POST /api/mcsm/users` - 创建MCSM用户（需要管理员认证）
+- `DELETE /api/mcsm/users/:userId` - 删除MCSM用户（需要管理员认证）
+- `POST /api/mcsm/users/:userId/instances/:instanceId/bind` - 绑定用户到实例（需要管理员认证）
+- `DELETE /api/mcsm/users/:userId/instances/:instanceId/bind` - 解绑用户从实例（需要管理员认证）
+- `GET /api/mcsm/users/:userId/instances` - 获取用户绑定的实例列表（需要管理员认证）
+- `GET /api/mcsm/instances/:instanceId/users` - 获取实例绑定的用户列表（需要管理员认证）
+
+#### 用户操作
+
+- `GET /api/mcsm/user/instances` - 用户获取自己的实例列表（需要用户认证）
+- `POST /api/mcsm/user/instances/:instanceId/command` - 用户发送命令到自己的实例（需要用户认证）
+- `GET /api/mcsm/user/instances/:instanceId/log` - 用户获取自己实例的控制台日志（需要用户认证）
+
 ## 前端页面
 
 - `/` - 主页（产品概览）
@@ -244,39 +298,47 @@ API 支持以下可选参数来进一步定制服务器配置：
 │   ├── app.js             # 应用配置
 │   └── database.js        # 数据库配置
 ├── controllers/            # 控制器层
-│   ├── adminController.js
-│   ├── authController.js
-│   ├── mcsmController.js
-│   ├── orderController.js
-│   ├── paymentController.js
-│   └── serverController.js
+│   ├── adminController.js # 管理员控制器
+│   ├── authController.js  # 认证控制器
+│   ├── mcsmController.js  # MCSM面板控制器
+│   ├── orderController.js # 订单控制器
+│   ├── paymentController.js # 支付控制器
+│   └── serverController.js # 服务器配置控制器
 ├── db/                     # 数据库访问层
-│   ├── adminDao.js
-│   ├── captchaDao.js
-│   ├── config.js
-│   ├── init.js
-│   ├── mcsmDao.js
-│   ├── orderDao.js
-│   ├── paymentDao.js
-│   ├── smsDao.js
-│   └── userDao.js
+│   ├── adminDao.js        # 管理员数据访问对象
+│   ├── captchaDao.js      # 验证码数据访问对象
+│   ├── config.js          # 数据库配置
+│   ├── init.js            # 数据库初始化
+│   ├── mcsmDao.js         # MCSM数据访问对象
+│   ├── orderDao.js        # 订单数据访问对象
+│   ├── paymentDao.js      # 支付数据访问对象
+│   ├── smsDao.js          # 短信数据访问对象
+│   ├── test.js            # 测试文件
+│   └── userDao.js         # 用户数据访问对象
 ├── middleware/             # 中间件
 │   └── auth.js            # 认证中间件
 ├── public/                 # 静态文件
-│   ├── admin/
-│   ├── buy.html
-│   ├── index.html
-│   ├── login/
-│   ├── payment.html
-│   ├── success.html
-│   └── test.html
+│   ├── admin/             # 管理员页面
+│   │   ├── dashboard.html # 管理员仪表板页面
+│   │   ├── index.html     # 管理员登录页面
+│   │   └── mcsm.html      # MCSM管理页面
+│   ├── buy.html           # 购买服务器页面
+│   ├── img/               # 图片资源
+│   ├── index.html         # 主页
+│   ├── login/             # 登录注册页面
+│   │   ├── app.js         # 登录页面JavaScript
+│   │   ├── index.html     # 登录注册主页面
+│   │   └── style.css      # 登录页面样式
+│   ├── payment.html       # 支付页面
+│   ├── success.html       # 支付成功页面
+│   ├── test.html          # 测试页面
 ├── routes/                 # 路由定义
-│   ├── admin.js
-│   ├── auth.js
-│   ├── mcsm.js
-│   ├── orders.js
-│   ├── payment.js
-│   └── servers.js
+│   ├── admin.js           # 管理员路由
+│   ├── auth.js            # 认证路由
+│   ├── mcsm.js            # MCSM路由
+│   ├── orders.js          # 订单路由
+│   ├── payment.js         # 支付路由
+│   └── servers.js         # 服务器配置路由
 ├── services/               # 业务服务层
 │   ├── paymentService.js  # 支付服务
 │   └── smsService.js      # 短信服务
@@ -284,20 +346,11 @@ API 支持以下可选参数来进一步定制服务器配置：
 │   ├── helpers.js         # 通用工具函数
 │   └── logger.js          # 日志服务
 ├── .env.example           # 环境变量示例
-├── init-admin.js          # 管理员初始化脚本
 ├── init-db.js             # 数据库初始化脚本
 ├── mcsmAPI.js             # MCSM API 集成
 ├── mcsmClient.js          # MCSM 客户端
 ├── package.json           # 项目依赖配置
 └── server.js              # 应用入口文件
-```
-
-## 管理员账户
-
-系统默认不创建管理员账户。为了安全起见，需要手动运行初始化脚本来创建默认管理员账户：
-
-```bash
-node init-admin.js
 ```
 
 该脚本会创建以下默认管理员账户：
@@ -399,6 +452,18 @@ node init-admin.js
 - 系统提供微信支付和支付宝的回调接口
 - 支付完成后会自动更新订单状态
 
+## MCSM面板配置说明
+
+系统支持与MCSM面板集成，用于自动创建和管理服务器实例：
+
+1. 在 `.env` 文件中配置MCSM相关参数：
+   ```
+   MCSM_API_KEY=your_api_key
+   MCSM_BASE_URL=http://your-mcsm-panel.com
+   ```
+
+2. 系统会在用户支付成功后自动创建对应的服务器实例
+
 ## 可选功能配置说明
 
 本系统支持在缺少第三方服务配置的情况下正常启动，部分功能将受限：
@@ -413,6 +478,11 @@ node init-admin.js
 - **默认行为**：未配置时支付功能仍然可用，但会返回配置缺失提示
 - **生产环境**：必须配置真实的支付参数以启用完整支付功能
 
+### MCSM集成
+- **可选配置**：MCSM面板API密钥和地址
+- **默认行为**：未配置时会在订单支付成功后记录日志但不创建实际服务器实例
+- **生产环境**：配置后可自动创建和管理服务器实例
+
 ### 配置检查
 系统在启动时会检查配置完整性，并在日志中输出相关提示信息，便于部署时确认配置状态。
 
@@ -420,5 +490,4 @@ node init-admin.js
 
 - 当前版本使用模拟短信发送功能，需集成真实腾讯云短信服务
 - 未实现 JWT 令牌认证
-- 订单管理系统不完整
 - 缺乏频率限制等安全防护措施
