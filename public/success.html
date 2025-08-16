@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单创建成功 - 云服务器系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0c1e3e, #1a3a6c, #2a5a9e);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* 装饰元素 */
+        .decoration {
+            position: absolute;
+            z-index: 0;
+        }
+        
+        .cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            filter: blur(15px);
+            z-index: 0;
+        }
+        
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* 导航栏 */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 50px;
+            background: rgba(10, 30, 60, 0.7);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(100, 180, 255, 0.3);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #64d8ff;
+        }
+        
+        .logo i {
+            margin-right: 10px;
+            font-size: 28px;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin: 0 20px;
+        }
+        
+        .nav-links a {
+            color: #e0f7ff;
+            text-decoration: none;
+            font-size: 18px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .nav-links a:hover {
+            color: #64ffda;
+            background: rgba(100, 255, 218, 0.1);
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: #64ffda;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-links a:hover::after {
+            width: 70%;
+        }
+        
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .login-btn, .register-btn {
+            background: transparent;
+            border: 1px solid #64d8ff;
+            color: #64d8ff;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .login-btn:hover, .register-btn:hover {
+            background: rgba(100, 216, 255, 0.2);
+        }
+        
+        .register-btn {
+            border-color: #64ffda;
+            color: #64ffda;
+        }
+        
+        /* 成功页面主体 */
+        .success-container {
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 30px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .success-header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 20px;
+        }
+        
+        .success-icon {
+            font-size: 100px;
+            color: #64ffda;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .success-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, #64d8ff, #64ffda, #a164ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            font-family: 'Arial Rounded MT Bold', 'Microsoft YaHei UI', sans-serif;
+        }
+        
+        .success-subtitle {
+            font-size: 1.5rem;
+            color: #c2e9ff;
+            max-width: 80%;
+            margin: 0 auto;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 信息卡片区域 */
+        .info-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .info-card {
+            background: rgba(16, 42, 83, 0.6);
+            border: 1px solid rgba(100, 180, 255, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .info-card:hover {
+            transform: translateY(-5px);
+            background: rgba(26, 65, 128, 0.7);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .info-card-title {
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            color: #64ffda;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 2px solid rgba(100, 255, 218, 0.3);
+            padding-bottom: 15px;
+        }
+        
+        .info-card-title i {
+            font-size: 1.5rem;
+        }
+        
+        .info-item {
+            display: flex;
+            margin-bottom: 25px;
+            align-items: center;
+        }
+        
+        .info-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(100, 255, 218, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        
+        .info-icon i {
+            font-size: 1.5rem;
+            color: #64ffda;
+        }
+        
+        .info-content {
+            flex: 1;
+        }
+        
+        .info-label {
+            font-size: 1rem;
+            color: #a4d2ff;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: white;
+            word-break: break-all;
+        }
+        
+        .password-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        
+        .show-password {
+            background: transparent;
+            color: #64ffda;
+            border: 1px solid #64ffda;
+            border-radius: 20px;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .show-password:hover {
+            background: rgba(100, 255, 218, 0.2);
+        }
+        
+        /* 按钮区域 */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            background: linear-gradient(45deg, #1e90ff, #64ffda);
+            color: #0c1e3e;
+            border: none;
+            padding: 18px 40px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 25px rgba(30, 144, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(30, 144, 255, 0.7);
+        }
+        
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: 0.5s;
+            z-index: -1;
+        }
+        
+        .action-btn:hover::before {
+            left: 100%;
+        }
+        
+        .action-btn.secondary {
+            background: transparent;
+            border: 2px solid #64ffda;
+            color: #64ffda;
+        }
+        
+        .action-btn.secondary:hover {
+            background: rgba(100, 255, 218, 0.1);
+        }
+        
+        /* 倒计时 */
+        .countdown {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 1.2rem;
+            color: #c2e9ff;
+            padding: 20px;
+            background: rgba(16, 42, 83, 0.4);
+            border-radius: 15px;
+            max-width: 600px;
+            margin: 50px auto 0;
+        }
+        
+        .timer {
+            font-weight: bold;
+            color: #64ffda;
+            font-size: 1.5rem;
+            display: inline-block;
+            min-width: 50px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 992px) {
+            .success-title {
+                font-size: 2.8rem;
+            }
+            
+            .info-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .action-btn {
+                width: 100%;
+                max-width: 400px;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 15px 20px;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .success-title {
+                font-size: 2.3rem;
+            }
+            
+            .success-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .info-card {
+                padding: 20px;
+            }
+            
+            .info-card-title {
+                font-size: 1.5rem;
+            }
+            
+            .info-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .info-icon {
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 装饰元素 -->
+    <div class="decoration cloud" style="width: 300px; height: 100px; top: 10%; left: 5%;"></div>
+    <div class="decoration cloud" style="width: 250px; height: 80px; top: 25%; right: 10%;"></div>
+    <div class="decoration cloud" style="width: 200px; height: 70px; bottom: 15%; left: 15%;"></div>
+    
+    <div class="decoration star" style="width: 3px; height: 3px; top: 20%; left: 20%;"></div>
+    <div class="decoration star" style="width: 4px; height: 4px; top: 45%; left: 30%; animation-delay: 0.5s;"></div>
+    <div class="decoration star" style="width: 2px; height: 2px; top: 60%; left: 80%; animation-delay: 1s;"></div>
+    <div class="decoration star" style="width: 3px; height: 3px; top: 35%; left: 75%; animation-delay: 1.5s;"></div>
+    
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fas fa-cloud"></i>
+            <span>云服务器系统</span>
+        </div>
+        
+        <ul class="nav-links">
+            <li><a href="#"><i class="fas fa-home"></i> 首页</a></li>
+            <li><a href="#"><i class="fas fa-server"></i> 产品</a></li>
+            <li><a href="#"><i class="fas fa-info-circle"></i> 关于</a></li>
+            <li><a href="#"><i class="fas fa-question-circle"></i> 帮助</a></li>
+            <li><a href="#"><i class="fas fa-envelope"></i> 联系</a></li>
+        </ul>
+        
+        <div class="user-actions">
+            <a href="#" class="login-btn"><i class="fas fa-user"></i> admin@example.com</a>
+        </div>
+    </nav>
+    
+    <!-- 成功页面内容 -->
+    <div class="success-container">
+        <div class="success-header">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h1 class="success-title">订单创建成功！</h1>
+            <p class="success-subtitle">您的云服务器已成功开通，以下是您的管理信息，请妥善保管</p>
+        </div>
+        
+        <div class="info-section">
+            <div class="info-card">
+                <h2 class="info-card-title"><i class="fas fa-server"></i> 管理信息</h2>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">管理地址</div>
+                        <div class="info-value">https://admin.cloudservice.com</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">管理账号</div>
+                        <div class="info-value">admin@example.com</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">管理密码</div>
+                        <div class="password-container">
+                            <div class="info-value" id="password">••••••••</div>
+                            <button class="show-password" id="showPassword">
+                                <i class="fas fa-eye"></i> 显示密码
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <h2 class="info-card-title"><i class="fas fa-clock"></i> 订单时间信息</h2>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-calendar-plus"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">订单创建时间</div>
+                        <div class="info-value">2023年10月15日 14:30:25</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="info-content">
+                        <div class="info-label">服务到期时间</div>
+                        <div class="info-value">2024年10月14日 23:59:59</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="action-btn">
+                <i class="fas fa-external-link-alt"></i> 访问管理面板
+            </button>
+            <button class="action-btn secondary">
+                <i class="fas fa-home"></i> 返回控制台
+            </button>
+        </div>
+        
+        <div class="countdown">
+            <p>页面将在 <span class="timer"><i class="fas fa-hourglass-half"></i> <span id="countdown">30</span></span> 秒后自动跳转至管理面板</p>
+        </div>
+    </div>
+    
+    <script>
+        // 密码显示/隐藏功能
+        document.getElementById('showPassword').addEventListener('click', function() {
+            const passwordElement = document.getElementById('password');
+            const button = this;
+            
+            if (passwordElement.textContent === '••••••••') {
+                passwordElement.textContent = 'P@ssw0rd!2023';
+                button.innerHTML = '<i class="fas fa-eye-slash"></i> 隐藏密码';
+            } else {
+                passwordElement.textContent = '••••••••';
+                button.innerHTML = '<i class="fas fa-eye"></i> 显示密码';
+            }
+        });
+        
+        // 倒计时功能
+        let countdown = 30;
+        const countdownElement = document.getElementById('countdown');
+        
+        const timer = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(timer);
+                // 这里可以添加自动跳转逻辑
+                alert('正在跳转到管理面板...');
+            }
+        }, 1000);
+        
+        // 创建更多装饰元素
+        document.addEventListener('DOMContentLoaded', function() {
+            const body = document.querySelector('body');
+            
+            // 创建更多云朵
+            for (let i = 0; i < 5; i++) {
+                const cloud = document.createElement('div');
+                cloud.classList.add('cloud');
+                cloud.style.width = Math.random() * 200 + 100 + 'px';
+                cloud.style.height = Math.random() * 60 + 40 + 'px';
+                cloud.style.top = Math.random() * 100 + '%';
+                cloud.style.left = Math.random() * 100 + '%';
+                body.appendChild(cloud);
+            }
+            
+            // 创建更多星星
+            for (let i = 0; i < 30; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                const size = Math.random() * 3 + 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                body.appendChild(star);
+            }
+        });
+    </script>
+</body>
+</html>
