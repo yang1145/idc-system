@@ -9,15 +9,15 @@ const {
 } = require('../controllers/paymentController');
 
 // 发起支付
-router.post('/api/payment/create', createPayment);
+router.post('/create', createPayment);
 
 // 查询支付状态
-router.get('/api/payment/status/:paymentId/:paymentMethod', getPaymentStatus);
+router.get('/status/:paymentId/:paymentMethod', getPaymentStatus);
 
 // 微信支付通知回调
-router.post('/api/payment/wechat/notify', express.raw({type: 'application/json'}), wechatNotify);
+router.post('/wechat/notify', express.raw({type: 'application/json'}), wechatNotify);
 
 // 支付宝通知回调
-router.post('/api/payment/alipay/notify', alipayNotify);
+router.post('/alipay/notify', alipayNotify);
 
 module.exports = router;

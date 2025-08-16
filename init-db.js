@@ -1,3 +1,9 @@
+#!/usr/bin/env node
+/**
+ * 数据库初始化脚本
+ * 提供向后兼容性，可以直接运行此脚本来初始化数据库
+ */
+
 const mysql = require('mysql2');
 const dotenv = require('dotenv');
 
@@ -14,11 +20,12 @@ const connection = mysql.createConnection({
 // 创建数据库
 const createDatabase = () => {
   return new Promise((resolve, reject) => {
-    connection.query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME || 'cloud_server'}`, (err, results) => {
+    const dbName = process.env.DB_NAME || 'cloud_server';
+    connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``, (err, results) => {
       if (err) {
         reject(err);
       } else {
-        console.log(`数据库 ${process.env.DB_NAME || 'cloud_server'} 创建成功或已存在`);
+        console.log(`数据库 ${dbName} 创建成功或已存在`);
         resolve(results);
       }
     });
@@ -27,8 +34,10 @@ const createDatabase = () => {
 
 // 创建用户表
 const createUsersTable = () => {
+  const dbName = process.env.DB_NAME || 'cloud_server';
+  
   // 切换到指定数据库
-  connection.changeUser({ database: process.env.DB_NAME || 'cloud_server' }, (err) => {
+  connection.changeUser({ database: dbName }, (err) => {
     if (err) {
       console.error('切换数据库失败:', err);
       return;
@@ -60,8 +69,10 @@ const createUsersTable = () => {
 
 // 创建短信验证码表
 const createSmsCodesTable = () => {
+  const dbName = process.env.DB_NAME || 'cloud_server';
+  
   // 确保在正确的数据库中
-  connection.changeUser({ database: process.env.DB_NAME || 'cloud_server' }, (err) => {
+  connection.changeUser({ database: dbName }, (err) => {
     if (err) {
       console.error('切换数据库失败:', err);
       return;
@@ -95,7 +106,7 @@ const closeConnection = () => {
 };
 
 // 主函数
-const init = async () => {
+const initDatabase = async () => {
   try {
     console.log('开始初始化数据库...');
     await createDatabase();
@@ -115,9 +126,17 @@ const init = async () => {
 
 // 如果直接运行此脚本，则执行初始化
 if (require.main === module) {
-  init();
+  initDatabase()
+    .then(() => {
+      console.log('数据库初始化完成');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('数据库初始化失败:', error);
+      process.exit(1);
+    });
 }
 
 module.exports = {
-  init
+  initDatabase
 };

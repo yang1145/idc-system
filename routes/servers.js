@@ -8,12 +8,12 @@ const {
 } = require('../controllers/serverController');
 
 // 获取所有服务器配置
-router.get('/api/servers', getAllServers);
+router.get('/', getAllServers);
 
 // 根据ID获取特定服务器配置
-router.get('/api/servers/:id', getServerById);
+router.get('/:id', getServerById);
 
 // 计算服务器价格
-router.post('/api/calculate', calculatePrice);
+router.post('/calculate', calculatePrice);
 
 module.exports = router;

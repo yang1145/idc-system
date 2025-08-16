@@ -19,7 +19,7 @@ const createCaptchaTable = async () => {
       )
     `;
     
-    await connection.promise().query(sql);
+    await connection.query(sql);
     console.log('验证码表创建成功或已存在');
   } finally {
     if (connection) connection.release();
@@ -35,7 +35,7 @@ const saveCaptcha = async (captchaId, captchaText, expiresAt) => {
     const sql = 'INSERT INTO captcha (captcha_id, captcha_text, expires_at) VALUES (?, ?, ?)';
     const values = [captchaId, captchaText, expiresAt];
     
-    const [results] = await connection.promise().query(sql, values);
+    const [results] = await connection.query(sql, values);
     return results.insertId;
   } finally {
     if (connection) connection.release();
@@ -49,7 +49,7 @@ const verifyCaptcha = async (captchaId, captchaText) => {
     connection = await getConnection();
     
     // 先删除过期的验证码
-    await connection.promise().query('DELETE FROM captcha WHERE expires_at < NOW()');
+    await connection.query('DELETE FROM captcha WHERE expires_at < NOW()');
     
     const sql = `
       SELECT * FROM captcha 
@@ -60,7 +60,7 @@ const verifyCaptcha = async (captchaId, captchaText) => {
     `;
     const values = [captchaId, captchaText.toUpperCase()]; // 不区分大小写验证
     
-    const [results] = await connection.promise().query(sql, values);
+    const [results] = await connection.query(sql, values);
     return results[0]; // 返回匹配的验证码记录或undefined
   } finally {
     if (connection) connection.release();
@@ -76,7 +76,7 @@ const markCaptchaAsUsed = async (captchaId) => {
     const sql = 'UPDATE captcha SET is_used = TRUE WHERE captcha_id = ?';
     const values = [captchaId];
     
-    const [results] = await connection.promise().query(sql, values);
+    const [results] = await connection.query(sql, values);
     return results.affectedRows > 0;
   } finally {
     if (connection) connection.release();
@@ -91,7 +91,7 @@ const deleteExpiredCaptchas = async () => {
     
     const sql = 'DELETE FROM captcha WHERE expires_at < NOW()';
     
-    const [results] = await connection.promise().query(sql);
+    const [results] = await connection.query(sql);
     console.log(`已删除 ${results.affectedRows} 条过期的验证码`);
     return results.affectedRows;
   } finally {

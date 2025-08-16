@@ -1,6 +1,13 @@
 const { getConnection } = require('./config');
 const bcrypt = require('bcryptjs');
 
+// 默认管理员账户信息
+const DEFAULT_ADMIN = {
+  username: 'admin',
+  password: 'admin123', // 建议上线后修改此默认密码
+  email: 'admin@example.com'
+};
+
 // 创建管理员表
 const createAdminsTable = async () => {
   let connection;
@@ -19,7 +26,7 @@ const createAdminsTable = async () => {
       )
     `;
     
-    await connection.promise().query(sql);
+    await connection.query(sql);
     console.log('管理员表创建成功或已存在');
   } finally {
     if (connection) connection.release();
@@ -35,7 +42,7 @@ const findAdminByUsername = async (username) => {
     const sql = 'SELECT * FROM admins WHERE username = ?';
     const values = [username];
     
-    const [results] = await connection.promise().query(sql, values);
+    const [results] = await connection.query(sql, values);
     return results[0]; // 返回第一个匹配的管理员或undefined
   } finally {
     if (connection) connection.release();
@@ -56,7 +63,7 @@ const createAdmin = async (adminData) => {
     const sql = 'INSERT INTO admins (username, password, email) VALUES (?, ?, ?)';
     const values = [username, hashedPassword, email];
     
-    const [results] = await connection.promise().query(sql, values);
+    const [results] = await connection.query(sql, values);
     return {
       id: results.insertId,
       username,
@@ -64,6 +71,38 @@ const createAdmin = async (adminData) => {
     };
   } finally {
     if (connection) connection.release();
+  }
+};
+
+// 创建默认管理员账户
+const createDefaultAdmin = async () => {
+  try {
+    // 检查是否已存在管理员账户
+    const existingAdmin = await findAdminByUsername(DEFAULT_ADMIN.username);
+    
+    if (existingAdmin) {
+      console.log('默认管理员账户已存在:');
+      console.log('- 用户名:', existingAdmin.username);
+      console.log('- 邮箱:', existingAdmin.email);
+      console.log('注意: 出于安全考虑，建议登录后立即修改默认密码');
+    } else {
+      // 创建默认管理员账户
+      const adminData = {
+        username: DEFAULT_ADMIN.username,
+        password: DEFAULT_ADMIN.password,
+        email: DEFAULT_ADMIN.email
+      };
+      
+      const newAdmin = await createAdmin(adminData);
+      console.log('默认管理员账户创建成功:');
+      console.log('- 用户名:', newAdmin.username);
+      console.log('- 密码:', DEFAULT_ADMIN.password);
+      console.log('- 邮箱:', newAdmin.email);
+      console.log('注意: 出于安全考虑，建议登录后立即修改默认密码');
+    }
+  } catch (error) {
+    console.error('创建默认管理员账户时出错:', error);
+    throw error;
   }
 };
 
@@ -80,7 +119,7 @@ const updateAdminPassword = async (adminId, newPassword) => {
     const sql = 'UPDATE admins SET password = ? WHERE id = ?';
     const values = [hashedPassword, adminId];
     
-    const [results] = await connection.promise().query(sql, values);
+    const [results] = await connection.query(sql, values);
     return results.affectedRows > 0;
   } finally {
     if (connection) connection.release();
@@ -95,7 +134,7 @@ const getAllUsers = async () => {
     
     const sql = 'SELECT id, username, phone, email, created_at FROM users ORDER BY created_at DESC';
     
-    const [results] = await connection.promise().query(sql);
+    const [results] = await connection.query(sql);
     return results;
   } finally {
     if (connection) connection.release();
@@ -111,7 +150,7 @@ const deleteUser = async (userId) => {
     const sql = 'DELETE FROM users WHERE id = ?';
     const values = [userId];
     
-    const [results] = await connection.promise().query(sql, values);
+    const [results] = await connection.query(sql, values);
     return results.affectedRows > 0;
   } finally {
     if (connection) connection.release();
@@ -122,6 +161,7 @@ module.exports = {
   createAdminsTable,
   findAdminByUsername,
   createAdmin,
+  createDefaultAdmin,
   updateAdminPassword,
   getAllUsers,
   deleteUser

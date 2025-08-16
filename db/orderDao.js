@@ -33,7 +33,7 @@ const createOrdersTable = async () => {
       )
     `;
     
-    await connection.promise().query(sql);
+    await connection.query(sql);
     console.log('订单表创建成功或已存在');
   } finally {
     if (connection) connection.release();
@@ -53,7 +53,7 @@ const orderDao = {
         order.months, order.monthlyCost, order.totalCost, order.customerInfo.name, order.customerInfo.phone, 
         order.customerInfo.email, 'pending'];
       
-      const [results] = await connection.promise().query(sql, values);
+      const [results] = await connection.query(sql, values);
       return {
         id: results.insertId,
         ...order,
@@ -78,7 +78,7 @@ const orderDao = {
         ORDER BY o.created_at DESC
       `;
       
-      const [results] = await connection.promise().query(sql);
+      const [results] = await connection.query(sql);
       return results;
     } finally {
       if (connection) connection.release();
@@ -94,7 +94,7 @@ const orderDao = {
       const sql = 'SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC';
       const values = [userId];
       
-      const [results] = await connection.promise().query(sql, values);
+      const [results] = await connection.query(sql, values);
       return results;
     } finally {
       if (connection) connection.release();
@@ -110,7 +110,7 @@ const orderDao = {
       const sql = 'UPDATE orders SET status = ? WHERE order_id = ?';
       const values = [status, orderId];
       
-      const [results] = await connection.promise().query(sql, values);
+      const [results] = await connection.query(sql, values);
       return results.affectedRows > 0;
     } finally {
       if (connection) connection.release();
@@ -126,7 +126,7 @@ const orderDao = {
       const sql = 'SELECT * FROM orders WHERE order_id = ?';
       const values = [orderId];
       
-      const [results] = await connection.promise().query(sql, values);
+      const [results] = await connection.query(sql, values);
       return results[0]; // 返回第一个匹配的订单或undefined
     } finally {
       if (connection) connection.release();

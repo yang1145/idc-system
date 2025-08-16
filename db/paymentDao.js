@@ -1,7 +1,41 @@
+const { getConnection } = require('./config');
 const dotenv = require('dotenv');
 
 // 加载环境变量
 dotenv.config();
+
+// 创建支付记录表
+const createPaymentsTable = async () => {
+  let connection;
+  try {
+    connection = await getConnection();
+    
+    const sql = `
+      CREATE TABLE IF NOT EXISTS payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        payment_id VARCHAR(100) NOT NULL UNIQUE,
+        order_id VARCHAR(50) NOT NULL,
+        user_id INT,
+        amount DECIMAL(10, 2) NOT NULL,
+        payment_method ENUM('wechat', 'alipay') NOT NULL,
+        status ENUM('pending', 'paid', 'failed', 'refunded') DEFAULT 'pending',
+        transaction_id VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_payment_id (payment_id),
+        INDEX idx_order_id (order_id),
+        INDEX idx_user_id (user_id),
+        INDEX idx_status (status),
+        INDEX idx_created_at (created_at)
+      )
+    `;
+    
+    await connection.query(sql);
+    console.log('支付记录表创建成功或已存在');
+  } finally {
+    if (connection) connection.release();
+  }
+};
 
 // 延迟初始化微信支付和支付宝支付，在实际调用时才初始化
 let wechatPay = null;
@@ -214,3 +248,4 @@ const paymentDao = {
 };
 
 module.exports = paymentDao;
+module.exports.createPaymentsTable = createPaymentsTable;

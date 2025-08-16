@@ -9,7 +9,7 @@ async function testConnection() {
     console.log('数据库连接成功！');
     
     // 测试查询
-    const [results] = await connection.promise().query('SELECT 1 + 1 AS solution');
+    const [results] = await connection.query('SELECT 1 + 1 AS solution');
     console.log('基本查询测试:', results[0].solution === 2 ? '通过' : '失败');
     
     connection.release();

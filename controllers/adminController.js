@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const adminDao = require('../db/adminDao');
+const orderDao = require('../db/orderDao');
 
 // 更新管理员密码（管理员功能）
 async function updateAdminPassword(req, res) {
@@ -116,8 +117,55 @@ async function deleteUser(req, res) {
   }
 }
 
+// 获取所有订单（管理员功能）
+async function getAllOrders(req, res) {
+  try {
+    const orders = await orderDao.getAllOrders();
+    
+    // 格式化订单数据
+    const formattedOrders = orders.map(order => ({
+      id: order.id,
+      orderId: order.order_id,
+      userId: order.user_id,
+      userUsername: order.user_username,
+      serverId: order.server_id,
+      configuration: {
+        cpu: order.cpu,
+        memory: order.memory,
+        disk: order.disk,
+        bandwidth: order.bandwidth,
+        ports: order.ports
+      },
+      months: order.months,
+      pricing: {
+        monthlyCost: order.monthly_cost,
+        totalCost: order.total_cost
+      },
+      customerInfo: {
+        name: order.customer_name,
+        phone: order.customer_phone,
+        email: order.customer_email
+      },
+      status: order.status,
+      createdAt: order.created_at
+    }));
+    
+    res.json({
+      success: true,
+      data: formattedOrders
+    });
+  } catch (error) {
+    console.error('获取订单列表错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取订单列表失败'
+    });
+  }
+}
+
 module.exports = {
   updateAdminPassword,
   getAllUsers,
-  deleteUser
+  deleteUser,
+  getAllOrders
 };

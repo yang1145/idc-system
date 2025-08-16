@@ -10,29 +10,33 @@ const {
   verifyCaptcha,
   adminLogin,
   requireUserAuth,
-  requireAdminAuth
+  requireAdminAuth,
+  verifyUserTokenEndpoint
 } = require('../controllers/authController');
 
 // 发送短信验证码
-router.post('/api/send-sms', sendSms);
+router.post('/send-sms', sendSms);
 
 // 用户注册
-router.post('/api/register', register);
+router.post('/register', register);
 
 // 用户名/密码登录
-router.post('/api/login', login);
+router.post('/login', login);
 
 // 短信验证码登录
-router.post('/api/login-sms', loginSms);
+router.post('/login-sms', loginSms);
 
 // 生成图像验证码
-router.get('/api/captcha', getCaptcha);
+router.get('/captcha', getCaptcha);
 
 // 验证图像验证码（用于测试）
-router.post('/api/verify-captcha', verifyCaptcha);
+router.post('/verify-captcha', verifyCaptcha);
 
 // 管理员登录
-router.post('/api/admin/login', adminLogin);
+router.post('/admin/login', adminLogin);
+
+// 验证用户令牌（用于前端验证）
+router.post('/verify-token', requireUserAuth, verifyUserTokenEndpoint);
 
 module.exports = router;
 module.exports.requireUserAuth = requireUserAuth;

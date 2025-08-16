@@ -3,98 +3,86 @@ const { getConnection } = require('./config');
 const mcsmDao = {
   
   createMcsmInstancesTable: async () => {
-    const connection = await getConnection();
-    
-    const sql = `
-      CREATE TABLE IF NOT EXISTS mcsm_instances (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        instance_uuid VARCHAR(100) NOT NULL UNIQUE,
-        nickname VARCHAR(100) NOT NULL,
-        status VARCHAR(20) DEFAULT 'stopped',
-        port INT DEFAULT 25565,
-        max_memory INT DEFAULT 1024,
-        current_memory INT DEFAULT 0,
-        cpu_usage FLOAT DEFAULT 0,
-        disk_usage FLOAT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_uuid (instance_uuid),
-        INDEX idx_status (status)
-      )
-    `;
-    
-    return new Promise((resolve, reject) => {
-      connection.query(sql, (err, results) => {
-        connection.release();
-        if (err) {
-          reject(err);
-        } else {
-          console.log('MCSM实例表创建成功或已存在');
-          resolve(results);
-        }
-      });
-    });
+    let connection;
+    try {
+      connection = await getConnection();
+      
+      const sql = `
+        CREATE TABLE IF NOT EXISTS mcsm_instances (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          instance_uuid VARCHAR(100) NOT NULL UNIQUE,
+          nickname VARCHAR(100) NOT NULL,
+          status VARCHAR(20) DEFAULT 'stopped',
+          port INT DEFAULT 25565,
+          max_memory INT DEFAULT 1024,
+          current_memory INT DEFAULT 0,
+          cpu_usage FLOAT DEFAULT 0,
+          disk_usage FLOAT DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_uuid (instance_uuid),
+          INDEX idx_status (status)
+        )
+      `;
+      
+      await connection.query(sql);
+      console.log('MCSM实例表创建成功或已存在');
+    } finally {
+      if (connection) connection.release();
+    }
   },
 
   createUserInstanceBindingsTable: async () => {
-    const connection = await getConnection();
-    
-    const sql = `
-      CREATE TABLE IF NOT EXISTS user_instance_bindings (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        instance_uuid VARCHAR(100) NOT NULL,
-        permissions JSON DEFAULT '["read"]',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        UNIQUE KEY unique_user_instance (user_id, instance_uuid),
-        INDEX idx_user_id (user_id),
-        INDEX idx_instance_uuid (instance_uuid)
-      )
-    `;
-    
-    return new Promise((resolve, reject) => {
-      connection.query(sql, (err, results) => {
-        connection.release();
-        if (err) {
-          reject(err);
-        } else {
-          console.log('用户实例绑定表创建成功或已存在');
-          resolve(results);
-        }
-      });
-    });
+    let connection;
+    try {
+      connection = await getConnection();
+      
+      const sql = `
+        CREATE TABLE IF NOT EXISTS user_instance_bindings (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          instance_uuid VARCHAR(100) NOT NULL,
+          permissions JSON,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          UNIQUE KEY unique_user_instance (user_id, instance_uuid),
+          INDEX idx_user_id (user_id),
+          INDEX idx_instance_uuid (instance_uuid)
+        )
+      `;
+      
+      await connection.query(sql);
+      console.log('用户实例绑定表创建成功或已存在');
+    } finally {
+      if (connection) connection.release();
+    }
   },
 
   createMcsmUsersTable: async () => {
-    const connection = await getConnection();
-    
-    const sql = `
-      CREATE TABLE IF NOT EXISTS mcsm_users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        mcsm_user_id VARCHAR(100) NOT NULL UNIQUE,
-        username VARCHAR(50) NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        permission VARCHAR(20) DEFAULT 'user',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_mcsm_user_id (mcsm_user_id),
-        INDEX idx_username (username)
-      )
-    `;
-    
-    return new Promise((resolve, reject) => {
-      connection.query(sql, (err, results) => {
-        connection.release();
-        if (err) {
-          reject(err);
-        } else {
-          console.log('MCSM用户表创建成功或已存在');
-          resolve(results);
-        }
-      });
-    });
+    let connection;
+    try {
+      connection = await getConnection();
+      
+      const sql = `
+        CREATE TABLE IF NOT EXISTS mcsm_users (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          mcsm_user_id VARCHAR(100) NOT NULL UNIQUE,
+          username VARCHAR(50) NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          permission VARCHAR(20) DEFAULT 'user',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_mcsm_user_id (mcsm_user_id),
+          INDEX idx_username (username)
+        )
+      `;
+      
+      await connection.query(sql);
+      console.log('MCSM用户表创建成功或已存在');
+    } finally {
+      if (connection) connection.release();
+    }
   },
 
   saveOrUpdateInstance: async (instanceData) => {
@@ -139,7 +127,7 @@ const mcsmDao = {
         disk_usage || 0
       ];
       
-      const [results] = await connection.promise().query(sql, values);
+      const [results] = await connection.query(sql, values);
       return results;
     } finally {
       if (connection) connection.release();
@@ -152,7 +140,7 @@ const mcsmDao = {
       connection = await getConnection();
       
       const sql = 'SELECT * FROM mcsm_instances ORDER BY created_at DESC';
-      const [results] = await connection.promise().query(sql);
+      const [results] = await connection.query(sql);
       return results;
     } finally {
       if (connection) connection.release();
@@ -165,7 +153,7 @@ const mcsmDao = {
       connection = await getConnection();
       
       const sql = 'SELECT * FROM mcsm_instances WHERE instance_uuid = ?';
-      const [results] = await connection.promise().query(sql, [instanceUuid]);
+      const [results] = await connection.query(sql, [instanceUuid]);
       return results[0];
     } finally {
       if (connection) connection.release();
@@ -178,7 +166,7 @@ const mcsmDao = {
       connection = await getConnection();
       
       const sql = 'UPDATE mcsm_instances SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE instance_uuid = ?';
-      const [results] = await connection.promise().query(sql, [status, instanceUuid]);
+      const [results] = await connection.query(sql, [status, instanceUuid]);
       return results.affectedRows > 0;
     } finally {
       if (connection) connection.release();
@@ -191,7 +179,7 @@ const mcsmDao = {
       connection = await getConnection();
       
       const sql = 'UPDATE mcsm_instances SET port = ?, updated_at = CURRENT_TIMESTAMP WHERE instance_uuid = ?';
-      const [results] = await connection.promise().query(sql, [port, instanceUuid]);
+      const [results] = await connection.query(sql, [port, instanceUuid]);
       return results.affectedRows > 0;
     } finally {
       if (connection) connection.release();
@@ -212,7 +200,7 @@ const mcsmDao = {
       `;
       
       const values = [userId, instanceUuid, JSON.stringify(permissions)];
-      const [results] = await connection.promise().query(sql, values);
+      const [results] = await connection.query(sql, values);
       return results;
     } finally {
       if (connection) connection.release();
@@ -225,7 +213,7 @@ const mcsmDao = {
       connection = await getConnection();
       
       const sql = 'DELETE FROM user_instance_bindings WHERE user_id = ? AND instance_uuid = ?';
-      const [results] = await connection.promise().query(sql, [userId, instanceUuid]);
+      const [results] = await connection.query(sql, [userId, instanceUuid]);
       return results.affectedRows > 0;
     } finally {
       if (connection) connection.release();
@@ -245,10 +233,10 @@ const mcsmDao = {
         ORDER BY b.created_at DESC
       `;
       
-      const [results] = await connection.promise().query(sql, [userId]);
+      const [results] = await connection.query(sql, [userId]);
       return results.map(row => ({
         ...row,
-        permissions: JSON.parse(row.permissions)
+        permissions: row.permissions ? JSON.parse(row.permissions) : ['read']
       }));
     } finally {
       if (connection) connection.release();
@@ -268,10 +256,10 @@ const mcsmDao = {
         ORDER BY b.created_at DESC
       `;
       
-      const [results] = await connection.promise().query(sql, [instanceUuid]);
+      const [results] = await connection.query(sql, [instanceUuid]);
       return results.map(row => ({
         ...row,
-        permissions: JSON.parse(row.permissions)
+        permissions: row.permissions ? JSON.parse(row.permissions) : ['read']
       }));
     } finally {
       if (connection) connection.release();
@@ -284,13 +272,13 @@ const mcsmDao = {
       connection = await getConnection();
       
       const sql = 'SELECT permissions FROM user_instance_bindings WHERE user_id = ? AND instance_uuid = ?';
-      const [results] = await connection.promise().query(sql, [userId, instanceUuid]);
+      const [results] = await connection.query(sql, [userId, instanceUuid]);
       
       if (results.length === 0) {
         return false;
       }
       
-      const permissions = JSON.parse(results[0].permissions);
+      const permissions = results[0].permissions ? JSON.parse(results[0].permissions) : ['read'];
       return permissions.includes(requiredPermission) || permissions.includes('admin');
     } finally {
       if (connection) connection.release();
@@ -315,7 +303,7 @@ const mcsmDao = {
       `;
       
       const values = [mcsm_user_id, username, password, permission || 'user'];
-      const [results] = await connection.promise().query(sql, values);
+      const [results] = await connection.query(sql, values);
       return results;
     } finally {
       if (connection) connection.release();
@@ -328,7 +316,7 @@ const mcsmDao = {
       connection = await getConnection();
       
       const sql = 'SELECT * FROM mcsm_users ORDER BY created_at DESC';
-      const [results] = await connection.promise().query(sql);
+      const [results] = await connection.query(sql);
       return results;
     } finally {
       if (connection) connection.release();
@@ -341,7 +329,7 @@ const mcsmDao = {
       connection = await getConnection();
       
       const sql = 'DELETE FROM mcsm_users WHERE mcsm_user_id = ?';
-      const [results] = await connection.promise().query(sql, [mcsmUserId]);
+      const [results] = await connection.query(sql, [mcsmUserId]);
       return results.affectedRows > 0;
     } finally {
       if (connection) connection.release();
@@ -354,7 +342,7 @@ const mcsmDao = {
       connection = await getConnection();
       
       const sql = 'SELECT * FROM mcsm_users WHERE username = ?';
-      const [results] = await connection.promise().query(sql, [username]);
+      const [results] = await connection.query(sql, [username]);
       return results[0];
     } finally {
       if (connection) connection.release();
