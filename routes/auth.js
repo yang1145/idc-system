@@ -10,8 +10,7 @@ const {
   verifyCaptcha,
   adminLogin,
   requireUserAuth,
-  requireAdminAuth,
-  verifyUserTokenEndpoint
+  requireAdminAuth
 } = require('../controllers/authController');
 
 // 发送短信验证码
@@ -34,9 +33,6 @@ router.post('/verify-captcha', verifyCaptcha);
 
 // 管理员登录
 router.post('/admin/login', adminLogin);
-
-// 验证用户令牌（用于前端验证）
-router.post('/verify-token', requireUserAuth, verifyUserTokenEndpoint);
 
 module.exports = router;
 module.exports.requireUserAuth = requireUserAuth;

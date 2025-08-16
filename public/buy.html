@@ -878,42 +878,7 @@
         });
         
         // 购买按钮事件
-        document.querySelector('.buy-btn').addEventListener('click', async function() {
-            // 检查用户是否已登录
-            const token = localStorage.getItem('userToken');
-            if (!token) {
-                // 用户未登录，跳转到登录页面
-                if (confirm('购买产品需要先登录，是否立即登录？')) {
-                    window.location.href = '/login/';
-                }
-                return;
-            }
-            
-            // 验证令牌是否有效
-            try {
-                const response = await fetch('/api/auth/verify-token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                if (!response.ok) {
-                    // 令牌无效，清除本地存储并跳转到登录页面
-                    localStorage.removeItem('userToken');
-                    localStorage.removeItem('userInfo');
-                    if (confirm('登录状态已过期，需要重新登录。是否立即登录？')) {
-                        window.location.href = '/login/';
-                    }
-                    return;
-                }
-            } catch (error) {
-                console.error('验证令牌时出错:', error);
-                alert('系统错误，请稍后重试');
-                return;
-            }
-            
+        document.querySelector('.buy-btn').addEventListener('click', function() {
             // 获取配置参数
             const cpu = parseInt(cpuSlider.value);
             const memory = parseInt(memorySlider.value);
@@ -922,51 +887,10 @@
             const port = parseInt(portSlider.value);
             const months = parseInt(timeSlider.value);
             
-            // 创建订单数据
-            const orderData = {
-                serverId: 1, // 默认服务器ID，实际应用中可能需要根据情况设置
-                cpu: cpu,
-                memory: memory,
-                disk: disk,
-                bandwidth: bandwidth,
-                ports: port,
-                months: months,
-                customerInfo: {
-                    name: '', // 这些信息可以在支付页面填写
-                    phone: '',
-                    email: ''
-                }
-            };
-            
-            try {
-                // 发送创建订单请求
-                const response = await fetch('/api/orders', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(orderData)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // 订单创建成功，跳转到支付页面并传递订单信息
-                    const orderId = result.data.orderId;
-                    const config = `${cpu}核${memory}GB/${disk}GB/${bandwidth}Mbps`;
-                    const duration = `${months}个月`;
-                    const amount = result.data.pricing.totalCost;
-                    
-                    const paymentUrl = `payment.html?orderId=${orderId}&config=${encodeURIComponent(config)}&duration=${encodeURIComponent(duration)}&amount=${amount}`;
-                    window.location.href = paymentUrl;
-                } else {
-                    alert('创建订单失败: ' + (result.message || '未知错误'));
-                }
-            } catch (error) {
-                console.error('创建订单时出错:', error);
-                alert('创建订单失败，请稍后重试');
-            }
+            // 在实际应用中，这里应该发送请求到后端创建订单
+            // 然后跳转到支付页面
+            alert('订单已创建，即将跳转到支付页面');
+            window.location.href = 'payment.html';
         });
     </script>
 </body>

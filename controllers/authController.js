@@ -69,56 +69,6 @@ function verifyUserToken(token) {
   }
 }
 
-// 验证用户令牌（用于前端验证）
-async function verifyUserTokenEndpoint(req, res) {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader) {
-    return res.status(401).json({
-      success: false,
-      message: '未提供身份验证令牌'
-    });
-  }
-  
-  const token = authHeader.replace('Bearer ', '');
-  const user = verifyUserToken(token);
-  
-  if (!user) {
-    return res.status(401).json({
-      success: false,
-      message: '无效的身份验证令牌'
-    });
-  }
-  
-  // 检查用户是否存在
-  try {
-    const dbUser = await userDao.findUserByLogin(user.username);
-    if (!dbUser) {
-      return res.status(401).json({
-        success: false,
-        message: '用户不存在'
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: '令牌有效',
-      data: {
-        id: dbUser.id,
-        username: dbUser.username,
-        phone: dbUser.phone,
-        email: dbUser.email
-      }
-    });
-  } catch (error) {
-    console.error('验证用户令牌时出错:', error);
-    res.status(500).json({
-      success: false,
-      message: '验证失败'
-    });
-  }
-}
-
 async function sendSMS(phone, code) {
   if (process.env.TENCENT_SECRET_ID && 
       process.env.TENCENT_SECRET_KEY &&
@@ -323,17 +273,10 @@ async function register(req, res) {
     });
   }
   
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({
-      success: false,
-      message: '邮箱格式不正确'
-    });
-  }
-  
   try {
     // 验证短信验证码
-    const isCodeValid = await smsDao.verifySmsCode(phone, smsCode);
-    if (!isCodeValid) {
+    const savedCode = await smsDao.verifySmsCode(phone, smsCode);
+    if (!savedCode) {
       return res.status(400).json({
         success: false,
         message: '短信验证码错误或已过期'
@@ -341,8 +284,8 @@ async function register(req, res) {
     }
     
     // 检查用户名是否已存在
-    const isUsernameExists = await userDao.checkUsernameExists(username);
-    if (isUsernameExists) {
+    const usernameExists = await userDao.checkUsernameExists(username);
+    if (usernameExists) {
       return res.status(400).json({
         success: false,
         message: '用户名已存在'
@@ -350,33 +293,33 @@ async function register(req, res) {
     }
     
     // 检查手机号是否已存在
-    const isPhoneExists = await userDao.checkPhoneExists(phone);
-    if (isPhoneExists) {
+    const phoneExists = await userDao.checkPhoneExists(phone);
+    if (phoneExists) {
       return res.status(400).json({
         success: false,
-        message: '手机号已存在'
+        message: '手机号已被注册'
       });
     }
     
     // 对密码进行加密
     const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hash = await bcrypt.hash(password, saltRounds);
     
-    // 创建用户
-    const userData = {
+    // 创建新用户
+    const newUser = {
       username,
-      password: hashedPassword,
+      password: hash, // 存储加密后的密码
       phone,
-      email: email || null
+      email: email || ''
     };
     
-    const user = await userDao.createUser(userData);
+    const createdUser = await userDao.createUser(newUser);
     
-    // 删除已使用的验证码
-    await smsDao.deleteSmsCode(phone, smsCode);
+    // 清除已使用的验证码
+    await smsDao.deleteSmsCode(phone);
     
-    // 生成用户令牌
-    const token = generateUserToken(user);
+    // 生成令牌
+    const token = generateUserToken(createdUser);
     
     res.json({
       success: true,
@@ -384,15 +327,15 @@ async function register(req, res) {
       data: {
         token,
         user: {
-          id: user.id,
-          username: user.username,
-          phone: user.phone,
-          email: user.email
+          id: createdUser.id,
+          username: createdUser.username,
+          phone: createdUser.phone,
+          email: createdUser.email
         }
       }
     });
   } catch (error) {
-    console.error('用户注册错误:', error);
+    console.error('注册错误:', error);
     res.status(500).json({
       success: false,
       message: '注册失败'
@@ -402,10 +345,10 @@ async function register(req, res) {
 
 // 用户名/密码登录
 async function login(req, res) {
-  const { login: userLogin, password } = req.body;
+  const { login, password } = req.body;
   
   // 验证参数
-  if (!userLogin || !password) {
+  if (!login || !password) {
     return res.status(400).json({
       success: false,
       message: '用户名/手机号和密码是必填项'
@@ -413,13 +356,13 @@ async function login(req, res) {
   }
   
   try {
-    // 根据用户名或手机号查找用户
-    const user = await userDao.findUserByLogin(userLogin);
+    // 查找用户（支持用户名或手机号登录）
+    const user = await userDao.findUserByLogin(login);
     
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: '用户名/手机号或密码错误'
+        message: '用户不存在'
       });
     }
     
@@ -428,11 +371,11 @@ async function login(req, res) {
     if (!result) {
       return res.status(401).json({
         success: false,
-        message: '用户名/手机号或密码错误'
+        message: '密码错误'
       });
     }
     
-    // 生成用户令牌
+    // 生成令牌
     const token = generateUserToken(user);
     
     res.json({
@@ -449,7 +392,7 @@ async function login(req, res) {
       }
     });
   } catch (error) {
-    console.error('用户登录错误:', error);
+    console.error('登录错误:', error);
     res.status(500).json({
       success: false,
       message: '登录失败'
@@ -478,41 +421,28 @@ async function loginSms(req, res) {
   
   try {
     // 验证短信验证码
-    const isCodeValid = await smsDao.verifySmsCode(phone, smsCode);
-    if (!isCodeValid) {
+    const savedCode = await smsDao.verifySmsCode(phone, smsCode);
+    if (!savedCode) {
       return res.status(400).json({
         success: false,
         message: '短信验证码错误或已过期'
       });
     }
     
-    // 根据手机号查找用户
-    let user = await userDao.findUserByPhone(phone);
+    // 查找用户
+    const user = await userDao.findUserByPhone(phone);
     
-    // 如果用户不存在，则创建新用户
     if (!user) {
-      const username = 'user' + Date.now(); // 生成默认用户名
-      const password = 'sms' + Date.now(); // 生成默认密码
-      
-      // 对密码进行加密
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      
-      // 创建用户
-      const userData = {
-        username,
-        password: hashedPassword,
-        phone,
-        email: null
-      };
-      
-      user = await userDao.createUser(userData);
+      return res.status(401).json({
+        success: false,
+        message: '用户不存在，请先注册'
+      });
     }
     
-    // 删除已使用的验证码
-    await smsDao.deleteSmsCode(phone, smsCode);
+    // 清除已使用的验证码
+    await smsDao.deleteSmsCode(phone);
     
-    // 生成用户令牌
+    // 生成令牌
     const token = generateUserToken(user);
     
     res.json({
@@ -538,33 +468,49 @@ async function loginSms(req, res) {
 }
 
 // 生成图像验证码
-function getCaptcha(req, res) {
-  const captcha = svgCaptcha.create({
-    size: 4,
-    ignoreChars: '0o1i',
-    noise: 2,
-    color: true,
-    background: '#f0f0f0'
-  });
-  
-  const captchaId = 'captcha_' + Date.now();
-  
-  // 保存验证码到内存（实际项目中应保存到数据库或Redis）
-  global.captchas = global.captchas || {};
-  global.captchas[captchaId] = captcha.text.toLowerCase();
-  
-  // 设置5分钟后过期
-  setTimeout(() => {
-    delete global.captchas[captchaId];
-  }, 5 * 60 * 1000);
-  
-  res.json({
-    success: true,
-    data: {
-      svg: captcha.data,
-      id: captchaId
+async function getCaptcha(req, res) {
+  try {
+    // 先清理过期的验证码
+    await captchaDao.deleteExpiredCaptchas();
+    
+    // 生成验证码
+    const captcha = svgCaptcha.create({
+      size: 6, // 验证码长度
+      ignoreChars: '0o1iIl', // 排除易混淆字符
+      noise: 3, // 干扰线条数量
+      color: true, // 彩色验证码
+      background: '#f0f0f0' // 背景色
+    });
+    
+    // 生成唯一的验证码ID
+    const captchaId = 'CAP' + Date.now() + Math.random().toString(36).substring(2, 10);
+    
+    // 设置5分钟后过期
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    
+    // 保存验证码到数据库
+    await captchaDao.saveCaptcha(captchaId, captcha.text.toUpperCase(), expiresAt);
+    
+    // 检查验证码数据是否存在
+    if (!captcha.data) {
+      throw new Error('验证码生成失败，未返回SVG数据');
     }
-  });
+    
+    // 返回验证码ID和SVG图像
+    res.json({
+      success: true,
+      data: {
+        captchaId: captchaId,
+        svg: captcha.data
+      }
+    });
+  } catch (error) {
+    console.error('生成验证码错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '生成验证码失败: ' + error.message
+    });
+  }
 }
 
 // 验证图像验证码（用于测试）
@@ -655,6 +601,56 @@ async function adminLogin(req, res) {
     res.status(500).json({
       success: false,
       message: '登录失败'
+    });
+  }
+}
+
+// 验证用户令牌（用于前端验证）
+async function verifyUserTokenEndpoint(req, res) {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader) {
+    return res.status(401).json({
+      success: false,
+      message: '未提供身份验证令牌'
+    });
+  }
+  
+  const token = authHeader.replace('Bearer ', '');
+  const user = verifyUserToken(token);
+  
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      message: '无效的身份验证令牌'
+    });
+  }
+  
+  // 检查用户是否存在
+  try {
+    const dbUser = await userDao.findUserByLogin(user.username);
+    if (!dbUser) {
+      return res.status(401).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: '令牌有效',
+      data: {
+        id: dbUser.id,
+        username: dbUser.username,
+        phone: dbUser.phone,
+        email: dbUser.email
+      }
+    });
+  } catch (error) {
+    console.error('验证用户令牌时出错:', error);
+    res.status(500).json({
+      success: false,
+      message: '验证失败'
     });
   }
 }
