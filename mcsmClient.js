@@ -52,7 +52,7 @@ class MCSMClient {
 
     async getUsers() {
         try {
-            const response = await this.client.get('/api/user/list');
+            const response = await this.client.get('/api/users');
             return response.data.data || [];
         } catch (error) {
             throw new Error(`获取用户列表失败: ${error.message}`);

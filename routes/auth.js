@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
-
-const {
-  sendSms,
-  register,
-  login,
-  loginSms,
-  getCaptcha,
-  verifyCaptcha,
+const { 
+  sendSms, 
+  register, 
+  login, 
+  loginSms, 
+  getCaptcha, 
+  verifyCaptcha, 
   adminLogin,
   requireUserAuth,
-  requireAdminAuth
+  realnameAuth,
+  getRealnameStatus
 } = require('../controllers/authController');
 
 // 发送短信验证码
@@ -33,6 +33,10 @@ router.post('/verify-captcha', verifyCaptcha);
 
 // 管理员登录
 router.post('/admin/login', adminLogin);
+
+// 实名认证相关路由
+router.post('/realname', requireUserAuth, realnameAuth);
+router.get('/realname/status', requireUserAuth, getRealnameStatus);
 
 module.exports = router;
 module.exports.requireUserAuth = requireUserAuth;

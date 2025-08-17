@@ -15,6 +15,7 @@ const {
   unbindUserFromInstance,
   getUserInstances,
   getInstanceUsers,
+  getAllInstances,
   getOwnInstances,
   sendCommandToOwnInstance,
   getOwnInstanceLog
@@ -61,6 +62,9 @@ router.get('/users/:userId/instances', requireAdminAuth, getUserInstances);
 
 // 获取实例绑定的用户列表
 router.get('/instances/:instanceId/users', requireAdminAuth, getInstanceUsers);
+
+// 获取所有MCSM实例
+router.get('/instances', requireAdminAuth, getAllInstances);
 
 // 用户获取自己的实例列表
 router.get('/user/instances', requireUserAuth, getOwnInstances);

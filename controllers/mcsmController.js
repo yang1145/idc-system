@@ -8,6 +8,34 @@ const MCSM_CONFIG = {
 
 const mcsm = new MCSMClient(MCSM_CONFIG.baseUrl, MCSM_CONFIG.apiKey);
 
+// 获取所有MCSM实例
+async function getAllInstances(req, res) {
+  try {
+    const instances = await mcsm.getInstances();
+    
+    // 同步实例信息到数据库
+    for (const instance of instances) {
+      await mcsmDao.saveMcsmInstance({
+        mcsm_instance_id: instance.uuid,
+        name: instance.config.nickname,
+        status: instance.status,
+        port: instance.config.port
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: instances
+    });
+  } catch (error) {
+    console.error('获取MCSM实例失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取实例失败: ' + error.message
+    });
+  }
+}
+
 // 启动MCSM实例
 async function startInstance(req, res) {
   const { instanceId } = req.params;
@@ -158,13 +186,18 @@ async function getAllUsers(req, res) {
     const users = await mcsm.getUsers();
     
     // 同步用户信息到数据库
-    for (const user of users) {
-      await mcsmDao.saveMcsmUser({
-        mcsm_user_id: user.uuid,
-        username: user.userName,
-        password: user.password || '',
-        permission: user.permission
-      });
+    try {
+      for (const user of users) {
+        await mcsmDao.saveMcsmUser({
+          mcsm_user_id: user.uuid,
+          username: user.userName,
+          password: user.password || '',
+          permission: user.permission
+        });
+      }
+    } catch (dbError) {
+      console.error('同步MCSM用户到数据库失败:', dbError);
+      // 即使数据库同步失败，也返回用户数据
     }
     
     res.json({
@@ -428,5 +461,6 @@ module.exports = {
   getInstanceUsers,
   getOwnInstances,
   sendCommandToOwnInstance,
-  getOwnInstanceLog
+  getOwnInstanceLog,
+  getAllInstances
 };

@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+const dotenv = require('dotenv');
+const path = require('path');
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,11 +27,23 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 // 数据库初始化
-const { initDatabase } = require('./db/init');
-initDatabase().catch(error => {
-  console.error('数据库初始化失败:', error);
-  process.exit(1);
-});
+const { initDatabase } = require('./init-db');
+const { createUsersTable } = require('./db/userDao');
+const { createSmsCodesTable } = require('./db/smsDao');
+const { createRealnameTable } = require('./db/realnameDao');
+
+// 初始化数据库表
+const initializeDatabaseTables = async () => {
+  try {
+    await createUsersTable();
+    await createSmsCodesTable();
+    await createRealnameTable();
+    console.log('数据库表初始化完成');
+  } catch (error) {
+    console.error('数据库表初始化失败:', error);
+    process.exit(1);
+  }
+};
 
 // 路由
 app.use('/api/auth', require('./routes/auth'));
@@ -44,6 +59,21 @@ app.get('/', (req, res) => {
 });
 
 // 启动服务器
-app.listen(PORT, () => {
-  console.log(`服务器运行在端口 ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    // 先初始化数据库
+    await initDatabase();
+    
+    // 再初始化表
+    await initializeDatabaseTables();
+    
+    app.listen(PORT, () => {
+      console.log(`服务器运行在端口 ${PORT}`);
+    });
+  } catch (error) {
+    console.error('服务器启动失败:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

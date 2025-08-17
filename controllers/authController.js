@@ -1,10 +1,9 @@
 const bcrypt = require('bcryptjs');
 const svgCaptcha = require('svg-captcha');
-
-const userDao = require('../db/userDao');
-const smsDao = require('../db/smsDao');
-const captchaDao = require('../db/captchaDao');
-const adminDao = require('../db/adminDao');
+const { userDao } = require('../db/userDao');
+const { captchaDao } = require('../db/captchaDao');
+const { realnameDao } = require('../db/realnameDao');
+const { sendSms } = require('../services/smsService');
 
 // 工具函数
 function isValidPhone(phone) {
@@ -655,6 +654,76 @@ async function verifyUserTokenEndpoint(req, res) {
   }
 }
 
+// 实名认证
+const realnameAuth = async (req, res) => {
+  try {
+    const { name, idCard } = req.body;
+    const userId = req.user.id; // 从认证中间件获取用户ID
+
+    // 验证输入
+    if (!name || !idCard) {
+      return res.status(400).json({ error: '姓名和身份证号不能为空' });
+    }
+
+    // 验证姓名格式（2-20个字符，可以是汉字或字母）
+    const nameRegex = /^[\u4e00-\u9fa5a-zA-Z]{2,20}$/;
+    if (!nameRegex.test(name)) {
+      return res.status(400).json({ error: '姓名格式不正确' });
+    }
+
+    // 验证身份证号格式（18位，最后一位可能是X）
+    const idCardRegex = /^\d{17}[\dXx]$/;
+    if (!idCardRegex.test(idCard)) {
+      return res.status(400).json({ error: '身份证号格式不正确' });
+    }
+
+    // 检查该用户是否已经提交过实名认证
+    const existingAuth = await realnameDao.findByUserId(userId);
+    if (existingAuth) {
+      return res.status(400).json({ error: '您已经提交过实名认证申请，请等待审核' });
+    }
+
+    // 保存实名认证信息
+    const realnameAuth = await realnameDao.createRealnameAuth(userId, name, idCard);
+
+    res.json({
+      message: '实名认证申请已提交，等待审核',
+      data: {
+        id: realnameAuth.id,
+        name: realnameAuth.name,
+        status: realnameAuth.status,
+        createdAt: realnameAuth.created_at
+      }
+    });
+  } catch (error) {
+    console.error('实名认证错误:', error);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+};
+
+// 获取实名认证状态
+const getRealnameStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const realnameAuth = await realnameDao.findByUserId(userId);
+    
+    if (!realnameAuth) {
+      return res.json({ status: 'not_submitted' });
+    }
+    
+    res.json({
+      status: realnameAuth.status,
+      name: realnameAuth.name,
+      createdAt: realnameAuth.created_at,
+      updatedAt: realnameAuth.updated_at
+    });
+  } catch (error) {
+    console.error('获取实名认证状态错误:', error);
+    res.status(500).json({ error: '服务器内部错误' });
+  }
+};
+
 module.exports = {
   sendSms,
   register,
@@ -665,5 +734,7 @@ module.exports = {
   adminLogin,
   requireUserAuth,
   requireAdminAuth,
-  verifyUserTokenEndpoint
+  verifyUserTokenEndpoint,
+  realnameAuth,
+  getRealnameStatus
 };
