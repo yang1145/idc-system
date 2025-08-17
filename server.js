@@ -29,15 +29,17 @@ app.use(express.static('public'));
 // 数据库初始化
 const { initDatabase } = require('./init-db');
 const { createUsersTable } = require('./db/userDao');
-const { createSmsCodesTable } = require('./db/smsDao');
+const { createSmsTable } = require('./db/smsDao');
 const { createRealnameTable } = require('./db/realnameDao');
+const { createOrdersTable } = require('./db/orderDao');
 
 // 初始化数据库表
 const initializeDatabaseTables = async () => {
   try {
     await createUsersTable();
-    await createSmsCodesTable();
+    await createSmsTable();
     await createRealnameTable();
+    await createOrdersTable();
     console.log('数据库表初始化完成');
   } catch (error) {
     console.error('数据库表初始化失败:', error);

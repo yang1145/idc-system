@@ -9,6 +9,7 @@ const {
   verifyCaptcha, 
   adminLogin,
   requireUserAuth,
+  requireAdminAuth,
   realnameAuth,
   getRealnameStatus
 } = require('../controllers/authController');

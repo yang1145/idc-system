@@ -1,9 +1,9 @@
 const bcrypt = require('bcryptjs');
 const svgCaptcha = require('svg-captcha');
-const { userDao } = require('../db/userDao');
-const { captchaDao } = require('../db/captchaDao');
-const { realnameDao } = require('../db/realnameDao');
-const { sendSms } = require('../services/smsService');
+const userDao = require('../db/userDao');
+const captchaDao = require('../db/captchaDao');
+const realnameDao = require('../db/realnameDao');
+const smsService = require('../services/smsService');
 
 // 工具函数
 function isValidPhone(phone) {
